@@ -1,4 +1,4 @@
-import os, re, csv, isodate, datetime, pprint
+import os, re, csv, isodate, pprint
 from datetime import timedelta
 from googleapiclient.discovery import build
 import pandas as pd
@@ -85,7 +85,9 @@ with open("results.csv", "a+", newline="") as fp:    #this checks whether or not
 # seconds to time
 df = pd.read_csv("results.csv")
 totalaSeconds = int(df["LENGTH"].sum())
-convertedTotal = datetime.timedelta(seconds=totalaSeconds)
-print("Current duration in the playlist(privated videos or deleted videos excluded):")
-print(f"{hours}h:{minutes}m:{seconds}s")
-print("Duration of the videos in the csv file: \n" + str(convertedTotal))
+hoursa = totalaSeconds // 3600
+minutesa = (totalaSeconds % 3600) // 60
+secondsa = totalaSeconds % 60
+print(f"Current duration in the playlist(privated videos or deleted videos excluded): \n{hours}h:{minutes}m:{seconds}s")
+print(f"Duration of the videos in the csv file: \n{hoursa}h:{minutesa}m:{secondsa}s")
+
