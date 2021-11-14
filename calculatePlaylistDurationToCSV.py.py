@@ -3,7 +3,7 @@ from datetime import timedelta
 from googleapiclient.discovery import build
 import pandas as pd
 
-os.chdir(r"")   # enter the direction(folder) of this python and headers.csv if you plan on making a bat file n shit
+os.chdir(r"")   #if you plan on turning this to a bat file, set the directory of your permanent folder or whatever
 api_key = os.environ.get("YT_API_KEY")        # you have to create your own api key
 youtube = build("youtube", "v3", developerKey=api_key)
 hours_pattern = re.compile(r"(\d+)H")
@@ -66,14 +66,13 @@ for i in range(len(forKeepingVidDUR)):
 emmpy = dict(zip(forKeepingVidIDS, parsedDUR))
 pformatedEmmpy = pprint.pformat(emmpy)
 
-# UNCOMMENT THIS, RUN THE PROGRAM SO THAT IS CAN CREATE THE RESULT.CSV, COMMENT IT ONCE MORE!!!!
-# outputFile = open("results.csv", "w", newline="")
-# outputDictWriter = csv.DictWriter(outputFile, ["VIDID", "LENGTH"])
-# outputDictWriter.writeheader()
-# outputFile.close()
+if os.path.isfile("./results.csv") == False:
+    outputFile = open("results.csv", "w", newline="")
+    outputDictWriter = csv.DictWriter(outputFile, ["VIDID", "LENGTH"])
+    outputDictWriter.writeheader()
+    outputFile.close()
 
-
-lines = open("results.csv", "r").read()              #you can name this file whatever you want, just make sure that the first line in the file has VIDID,LENGHT    (under VIDID-the ids, under LENGHT-the lenght in seconds)
+lines = open("results.csv", "r").read()              #you dont have to do this anymore -> #you can name this file whatever you want, just make sure that the first line in the file has VIDID,LENGHT    (under VIDID-the ids, under LENGHT-the lenght in seconds)
 with open("results.csv", "a+", newline="") as fp:    #this checks whether or not the file is already in the csv, if it is, it skips adding it, if not - it adds it
     writer = csv.writer(fp)
     for key, value in emmpy.items():
