@@ -1,4 +1,5 @@
 # calculateYT-PlaylistDurationCSV<br />
+// just a smaaal insignificant issue - it counts all the privated videos as well, works perfectly fine so long as you dont run it on a playlist that has privated videos, if the videos were public and you ran in- it will work as intended but if you try it again after the vid's been privated it'll count it and fuck up the duration for the other vids unlucky<br />
 it goes through an entire playlist, calculates the duration and saves it to an csv file<br />
 i fixed file creation, just set the default(permanent) folder if u plan on turning this to a bat file <br />
 VVV<br />
