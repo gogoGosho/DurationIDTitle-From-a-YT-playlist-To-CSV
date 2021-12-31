@@ -1,93 +1,67 @@
-import os, re, csv, isodate, pprint
-from datetime import timedelta
 from googleapiclient.discovery import build
+import os, isodate, time, csv
 import pandas as pd
-
-os.chdir(r"")   #if you plan on turning this to a bat file, set the directory of your permanent folder or whatever
-api_key = os.environ.get("YT_API_KEY")        # you have to create your own api key
+api_key = os.environ.get("YT_API_KEY")  # you have to create your own API key
 youtube = build("youtube", "v3", developerKey=api_key)
-hours_pattern = re.compile(r"(\d+)H")
-minutes_pattern = re.compile(r"(\d+)M")
-seconds_pattern = re.compile(r"(\d+)S")
-total_seconds = 0
 nextPageToken = None
-forKeepingVidDUR = []
-forKeepingVidIDS = []
+permListForIDS = []
+permListForDuration = []
+permListForTitles = []
+total_seconds_current_playlist = 0
+start_time = time.time()
+def convert_seconds_to_time(asd):
+    hours = int(asd) // 3600
+    minutes = (int(asd) % 3600) // 60
+    seconds = int(asd) % 60
+    string_to_hold_them = f"{hours}h:{minutes}m:{seconds}s"
+    string_without_colons = f"{hours}h{minutes}m{seconds}s"
+    return string_to_hold_them, string_without_colons
 while True:
     pl_request = youtube.playlistItems().list(
-        part="contentDetails",  
-        playlistId="",      # enter the id of ur playlist, you can keep it(the playlist) hidden, just don't private it
+        part="contentDetails,snippet,status",
+        playlistId="PLmNMakH9YANUQLEl4klcQ5aQJ2mviEP4U",  # example playlist
         maxResults=50,
-        pageToken=nextPageToken,
-    )
+        pageToken=nextPageToken,)
     pl_response = pl_request.execute()
     vid_ids = []
-
-    for item in pl_response["items"]:
-        vid_ids.append(item["contentDetails"]["videoId"])
+    for i in pl_response["items"]:
+        getVidID = i["contentDetails"]["videoId"]
+        getVidTitle = i["snippet"]["title"]
+        getVidStatus = i["status"]["privacyStatus"]
+        if getVidStatus == "privacyStatusUnspecified" or getVidStatus == "private":
+            continue
+        if getVidStatus == "public" or getVidStatus == "unlisted":
+            vid_ids.append(getVidID)
+            permListForIDS.append(getVidID)
+            permListForTitles.append(getVidTitle)
     vid_request = youtube.videos().list(part="contentDetails", id=",".join(vid_ids))
-
     vid_response = vid_request.execute()
-
-    for item in vid_response["items"]:
-        duration = item["contentDetails"]["duration"]
-        hours = hours_pattern.search(duration)
-        minutes = minutes_pattern.search(duration)
-        seconds = seconds_pattern.search(duration)
-        hours = int(hours.group(1)) if hours else 0
-        minutes = int(minutes.group(1)) if minutes else 0
-        seconds = int(seconds.group(1)) if seconds else 0
-
-        video_seconds = timedelta(
-            hours=hours, minutes=minutes, seconds=seconds
-        ).total_seconds()
-
-        total_seconds += video_seconds
-    for item in vid_response["items"]:
-        asddsa = item["contentDetails"]["duration"]
-        forKeepingVidDUR.append(asddsa)
-    for item in pl_response["items"]:
-        forKeepingVidIDS.append(item["contentDetails"]["videoId"])
+    for i in vid_response["items"]:
+        duration = i["contentDetails"]["duration"]
+        permListForDuration.append(isodate.parse_duration(duration).seconds)
+        total_seconds_current_playlist += isodate.parse_duration(duration).seconds
+    if os.path.isfile("./totalCSV.csv") == False:
+        outputFile = open("totalCSV.csv", "w", newline="", encoding="utf-16")
+        outputDictWriter = csv.DictWriter(outputFile, ["VIDID", "LENGTH", "TITLE"])
+        outputDictWriter.writeheader()
+        outputFile.close()
+    lines = open("totalCSV.csv", "r", encoding="utf-16").read()
+    with open("totalCSV.csv", "a+", newline="", encoding="utf-16") as fp:
+        writer = csv.writer(fp)
+        for i in range(len(permListForIDS)):
+            if permListForIDS[i] in lines:
+                continue
+            else:
+                content = [
+                    permListForIDS[i],
+                    permListForDuration[i],
+                    permListForTitles[i],]
+                writer.writerow(content)
     nextPageToken = pl_response.get("nextPageToken")
-
     if not nextPageToken:
         break
-total_seconds = int(total_seconds)
-minutes, seconds = divmod(total_seconds, 60)
-hours, minutes = divmod(minutes, 60)
-
-
-parsedDUR = []
-
-for i in range(len(forKeepingVidDUR)):
-    asd = int(isodate.parse_duration(forKeepingVidDUR[i]).total_seconds())
-    parsedDUR.append(asd)
-
-emmpy = dict(zip(forKeepingVidIDS, parsedDUR))
-pformatedEmmpy = pprint.pformat(emmpy)
-
-if os.path.isfile("./results.csv") == False:
-    outputFile = open("results.csv", "w", newline="")
-    outputDictWriter = csv.DictWriter(outputFile, ["VIDID", "LENGTH"])
-    outputDictWriter.writeheader()
-    outputFile.close()
-
-lines = open("results.csv", "r").read()              #you dont have to do this anymore -> #you can name this file whatever you want, just make sure that the first line in the file has VIDID,LENGHT    (under VIDID-the ids, under LENGHT-the lenght in seconds)
-with open("results.csv", "a+", newline="") as fp:    #this checks whether or not the file is already in the csv, if it is, it skips adding it, if not - it adds it
-    writer = csv.writer(fp)
-    for key, value in emmpy.items():
-        if key in lines:
-            continue
-        else:
-            writer.writerow([key, value])
-
-
-# seconds to time
-df = pd.read_csv("results.csv")
-totalaSeconds = int(df["LENGTH"].sum())
-hoursa = totalaSeconds // 3600
-minutesa = (totalaSeconds % 3600) // 60
-secondsa = totalaSeconds % 60
-print(f"Current duration in the playlist(privated videos or deleted videos excluded): \n{hours}h:{minutes}m:{seconds}s")
-print(f"Duration of the videos in the csv file: \n{hoursa}h:{minutesa}m:{secondsa}s")
-
+df = pd.read_csv("totalCSV.csv", encoding="utf-16")
+totalsecondsPandas = int(df["LENGTH"].sum())
+print(f"Duration of the playlist: {convert_seconds_to_time(total_seconds_current_playlist)[0]}")
+print(f"Duration of the videos in the csv file: {convert_seconds_to_time(totalsecondsPandas)[0]}")
+print(f"\nTime it took: {time.time() - start_time}s")
